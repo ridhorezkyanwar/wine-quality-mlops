@@ -2,8 +2,8 @@ FROM python:3.9-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements.railway.txt .
+RUN pip install --no-cache-dir -r requirements.railway.txt
 
 COPY app.py .
 COPY serving_model/ serving_model/
