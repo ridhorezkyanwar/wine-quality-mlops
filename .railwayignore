@@ -1,0 +1,9 @@
+ridhorezkyanwar-pipeline/
+data/
+*.ipynb
+monitoring/
+docker-compose.yml
+__pycache__/
+*.pyc
+.venv/
+venv/
