@@ -110,7 +110,7 @@ Model hanya di-push ke serving directory jika memenuhi threshold Binary Accuracy
 ### Contoh Request
 
 ```bash
-curl -X POST https://your-app.railway.app/predict \
+curl -X POST https://wine-quality-mlops-production.up.railway.app/predict \
   -H "Content-Type: application/json" \
   -d '{
     "fixed_acidity": 7.4,
@@ -138,7 +138,7 @@ curl -X POST https://your-app.railway.app/predict \
 
 ### Web App URL
 
-> Ganti dengan URL Railway Anda setelah deploy: `https://your-app.railway.app`
+`https://wine-quality-mlops-production.up.railway.app`
 
 ---
 
