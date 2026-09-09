@@ -85,55 +85,35 @@ Model hanya di-push ke serving directory jika memenuhi threshold Binary Accuracy
 
 ---
 
-## Deployment
+## Deployment dan Monitoring
 
-### Platform
+Model di-deploy dengan **TensorFlow Serving**, bukan Flask/FastAPI. `Dockerfile` menggunakan `tensorflow/serving:latest`, memuat SavedModel dari `serving_model/`, dan menjalankan REST API pada port yang disediakan Railway. Konfigurasi Prometheus bawaan TF Serving ada di `config/monitoring.config`.
 
-**Railway** - https://railway.app
+### Deploy ke Railway
 
-### Cara Deploy
-
-1. Push kode ke GitHub repository
-2. Connect repository ke Railway
-3. Set environment variable: `SERVING_MODEL_DIR=serving_model`
-4. Railway otomatis build dari Dockerfile dan deploy
+1. Push perubahan ke branch `main` GitHub.
+2. Railway rebuild `Dockerfile` secara otomatis.
+3. Pastikan deployment berstatus **Success**.
+4. Buka endpoint metadata model untuk memverifikasi TF Serving.
 
 ### Endpoints
 
-| Endpoint   | Method | Deskripsi              |
-| ---------- | ------ | ---------------------- |
-| `/`        | GET    | Info API               |
-| `/predict` | POST   | Prediksi kualitas wine |
-| `/health`  | GET    | Health check           |
-| `/metrics` | GET    | Prometheus metrics     |
+| Endpoint | Method | Deskripsi |
+| --- | --- | --- |
+| `/v1/models/wine-quality` | GET | Metadata dan status model. |
+| `/v1/models/wine-quality:predict` | POST | Prediksi dengan REST API TF Serving. |
+| `/monitoring/prometheus/metrics` | GET | Metrik Prometheus bawaan TF Serving. |
 
 ### Contoh Request
 
 ```bash
-curl -X POST https://wine-quality-mlops-production.up.railway.app/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fixed_acidity": 7.4,
-    "volatile_acidity": 0.28,
-    "citric_acid": 0.34,
-    "residual_sugar": 1.2,
-    "chlorides": 0.045,
-    "free_sulfur_dioxide": 35.0,
-    "total_sulfur_dioxide": 141.0,
-    "density": 0.9940,
-    "pH": 3.42,
-    "sulphates": 0.68,
-    "alcohol": 12.5
-  }'
+curl https://wine-quality-mlops-production.up.railway.app/v1/models/wine-quality
 ```
 
 ### Contoh Response
 
 ```json
-{
-  "probability": 0.8234,
-  "label": "good"
-}
+{"model_version_status":[{"version":"<versi>","state":"AVAILABLE"}]}
 ```
 
 ### Web App URL
@@ -142,24 +122,21 @@ curl -X POST https://wine-quality-mlops-production.up.railway.app/predict \
 
 ---
 
-## Monitoring
+## Monitoring Prometheus
 
 ### Prometheus Metrics yang Dipantau
 
-| Metric                               | Tipe      | Deskripsi                            |
-| ------------------------------------ | --------- | ------------------------------------ |
-| `prediction_requests_total`          | Counter   | Total jumlah request prediksi        |
-| `prediction_request_latency_seconds` | Histogram | Latency setiap request               |
-| `prediction_result_total`            | Counter   | Distribusi hasil prediksi (good/bad) |
+| Metric | Tipe | Deskripsi |
+| --- | --- | --- |
+| `:tensorflow:serving:request_count` | Counter | Jumlah request yang diproses TF Serving. |
+| `tensorflow:core:graph_runs` | Counter | Eksekusi graph TensorFlow. |
+| `process_*` | Gauge/Counter | Metrik proses server. |
 
 ### Cara Menjalankan Monitoring Lokal
 
 ```bash
-# Jalankan Flask app terlebih dahulu
-python app.py
-
-# Jalankan Prometheus + Grafana
-docker-compose up -d
+# Jalankan TF Serving, Prometheus, dan Grafana
+docker-compose up -d --build
 
 # Akses Prometheus: http://localhost:9090
 # Akses Grafana: http://localhost:3000 (admin/admin)
@@ -171,9 +148,7 @@ docker-compose up -d
 2. Login: admin / admin
 3. Add Data Source → Prometheus → URL: http://prometheus:9090
 4. Import dashboard atau buat panel baru dengan query:
-   - `rate(prediction_requests_total[1m])` - request rate
-   - `histogram_quantile(0.95, prediction_request_latency_seconds_bucket)` - P95 latency
-   - `prediction_result_total` - distribusi prediksi
+   - `:tensorflow:serving:request_count` - jumlah request TF Serving
 
 ---
 
@@ -222,14 +197,8 @@ python pipeline.py
 # atau buka notebook.ipynb dan jalankan semua cell
 ```
 
-### 3. Jalankan Flask App Lokal
+### 3. Jalankan TensorFlow Serving dan monitoring
 
 ```bash
-python app.py
-```
-
-### 4. Jalankan Monitoring
-
-```bash
-docker-compose up -d
+docker-compose up -d --build
 ```

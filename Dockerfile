@@ -1,16 +1,16 @@
-FROM python:3.9-slim
+FROM tensorflow/serving:latest
 
-WORKDIR /app
+COPY serving_model/ /models/wine-quality/
+COPY config/monitoring.config /config/monitoring.config
+COPY tf_serving_entrypoint.sh /usr/bin/tf_serving_entrypoint.sh
 
-COPY requirements.railway.txt .
-RUN pip install --no-cache-dir -r requirements.railway.txt
+ENV MODEL_NAME=wine-quality
+ENV MODEL_BASE_PATH=/models/wine-quality
+ENV MONITORING_CONFIG=/config/monitoring.config
+ENV PORT=8501
 
-COPY app.py .
-COPY serving_model/ serving_model/
+EXPOSE 8501
 
-ENV SERVING_MODEL_DIR=serving_model
-ENV PORT=8080
+RUN chmod +x /usr/bin/tf_serving_entrypoint.sh
 
-EXPOSE 8080
-
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "1", "--timeout", "120", "app:app"]
+ENTRYPOINT ["/usr/bin/tf_serving_entrypoint.sh"]

@@ -5,83 +5,55 @@ Username dicoding: ridhorezkyanwar
 
 | | Deskripsi |
 | ----------- | ----------- |
-| Dataset | [Wine Quality Dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) dari UCI Machine Learning Repository. Dataset terdiri dari 6.497 data wine merah dan putih dengan 11 fitur kimiawi serta label `quality`. |
-| Masalah | Menentukan apakah kualitas sebuah wine termasuk `good` atau `bad` berdasarkan komposisi kimiawinya, sehingga penilaian kualitas dapat dilakukan secara otomatis. |
-| Solusi machine learning | Membuat model klasifikasi biner menggunakan TensorFlow untuk memprediksi kualitas wine. Pipeline TFX digunakan untuk preprocessing, training, tuning, evaluasi, dan penyimpanan model yang memenuhi threshold. |
-| Metode pengolahan | Semua 11 fitur numerik dinormalisasi menggunakan z-score dengan `tft.scale_to_z_score`. Label diubah menjadi biner: `quality >= 6` menjadi `good (1)` dan `quality < 6` menjadi `bad (0)`. |
-| Arsitektur model | Input 11 fitur, Dense(64, relu), Dropout(0.3), Dense(32, relu), Dropout(0.3), dan Dense(1, sigmoid). Hyperparameter dituning menggunakan RandomSearch. |
-| Metrik evaluasi | Binary Accuracy dengan threshold keberhasilan minimal 0.70 dan AUC (Area Under the Curve). |
-| Performa model | Model dievaluasi oleh komponen Evaluator TFX dan hanya di-push ke serving directory apabila Binary Accuracy memenuhi threshold minimal 0.70. |
-| Opsi deployment | Model disajikan melalui Flask API yang dikemas menggunakan Docker dan dideploy pada Railway dengan Gunicorn. |
-| Web app | [Wine Quality Prediction API](https://wine-quality-mlops-production.up.railway.app/) |
-| Monitoring | Model serving menyediakan endpoint `/metrics` menggunakan Prometheus client untuk memantau jumlah request, latency prediksi, dan distribusi hasil `good`/`bad`. Monitoring lokal dapat dijalankan dengan Prometheus dan Grafana melalui `docker-compose.yml`. |
+| Dataset | [Wine Quality Dataset](https://archive.ics.uci.edu/ml/datasets/wine+quality) dari UCI Machine Learning Repository. Dataset berisi 6.497 data wine merah dan putih, 11 fitur kimiawi, dan label `quality`. |
+| Masalah | Menentukan apakah wine tergolong `good` atau `bad` berdasarkan komposisi kimianya agar penilaian kualitas dapat diotomatisasi. |
+| Solusi machine learning | Model klasifikasi biner TensorFlow. Pipeline TFX melakukan validasi, transformasi, tuning, training, evaluasi, dan menghasilkan SavedModel bila model memenuhi threshold. |
+| Metode pengolahan | Sebelas fitur numerik dinormalisasi dengan z-score melalui `tft.scale_to_z_score`. Label dibinarisasi: `quality >= 6` menjadi `1` (`good`) dan sisanya `0` (`bad`). |
+| Arsitektur model | Input 11 fitur, Dense(ReLU), Dropout, Dense(ReLU), Dropout, dan Dense(sigmoid). Hyperparameter `units`, `dropout_rate`, dan `learning_rate` dicari dengan RandomSearch lima trial. |
+| Metrik evaluasi | Binary Accuracy dan AUC. Model hanya dapat di-push bila Binary Accuracy memenuhi threshold minimal 0,70. |
+| Performa model | Hasil evaluasi disimpan oleh komponen Evaluator TFX; konfigurasi threshold Binary Accuracy adalah `>= 0.70`. |
+| Opsi deployment | SavedModel dijalankan menggunakan **TensorFlow Serving** dalam container `tensorflow/serving:latest` dan dideploy ke Railway. REST API TF Serving menggunakan port Railway (`$PORT`). |
+| Web app | [TF Serving model metadata](https://wine-quality-mlops-production.up.railway.app/v1/models/wine-quality) |
+| Monitoring | TF Serving mengekspos metrik Prometheus bawaan di `/monitoring/prometheus/metrics`. Prometheus melakukan scrape endpoint ini setiap lima detik melalui konfigurasi `monitoring/prometheus.yml`. |
 
 ---
 
 ## Bukti Deployment
 
-- Screenshot deployment (Railway) disimpan pada file: ![deployment](./ridhorezkyanwar-deployment.png)
-- Web App URL: https://wine-quality-mlops-production.up.railway.app/
+Setelah Railway menyelesaikan redeploy image TF Serving, ambil screenshot respons endpoint berikut dan simpan sebagai `ridhorezkyanwar-deployment.png`:
 
-> Catatan: Screenshot deployment disediakan sesuai permintaan reviewer dengan nama file: `ridhorezkyanwar-deployment.png`.
+```text
+https://wine-quality-mlops-production.up.railway.app/v1/models/wine-quality
+```
+
+Respons yang diharapkan memuat status model, nama `wine-quality`, dan versi model yang dimuat. Screenshot deployment sebelumnya yang menampilkan Flask tidak digunakan sebagai bukti deployment TF Serving.
 
 ---
 
 ## Bukti Monitoring
 
-- Screenshot monitoring (Prometheus / metrics) disimpan pada file: ![monitoring](./ridhorezkyanwar-monitoring.png)
+Jalankan stack monitoring lokal setelah Docker tersedia:
 
-> Catatan: Karena lingkungan lokal tidak menjalankan Docker pada runner ini, screenshot monitoring diambil dari endpoint `/metrics` yang tersedia pada deployment Railway. Jika reviewer menginginkan Grafana dashboard secara spesifik, mohon beri tahu — langkah untuk membuat dan menangkap Grafana dashboard:
->
-> 1. Jalankan layanan monitoring lokal: `docker-compose up -d` (docker dibutuhkan)
-> 2. Akses Grafana di http://localhost:3000 (admin/admin)
-> 3. Import atau buat dashboard lalu ambil screenshot bernama `ridhorezkyanwar-monitoring.png`.
-
----
-
-## Instruksi Verifikasi (Untuk Reviewer)
-
-1. Buka Web App: https://wine-quality-mlops-production.up.railway.app/ — seharusnya menampilkan JSON status API.
-2. Endpoint metrics: https://wine-quality-mlops-production.up.railway.app/metrics — berisi metrik Prometheus termasuk `prediction_requests_total`, `prediction_request_latency_seconds`, dan `prediction_result_total`.
-3. Lihat file dalam repository untuk bukti screenshot:
-   - `ridhorezkyanwar-deployment.png`
-   - `ridhorezkyanwar-monitoring.png`
-
----
-
-## Struktur Proyek (singkat)
-
+```bash
+docker-compose up -d --build
 ```
-ProyekPengembangandanPengoperasianSistemMachineLearning/
-├── modules/ (transform, trainer, tuner)
-├── monitoring/ (Prometheus config + Dockerfile)
-├── serving_model/ (model yang di-push)
-├── app.py (Flask serving)
-├── Dockerfile (app)
-├── docker-compose.yml (prometheus + grafana)
-└── README.md (dokumentasi ini)
+
+1. Kirim beberapa request prediksi ke `http://localhost:8501/v1/models/wine-quality:predict`.
+2. Buka `http://localhost:9090/graph`.
+3. Jalankan query `:tensorflow:serving:request_count` dan pilih tab **Graph**.
+4. Simpan screenshot grafik time series Prometheus sebagai `ridhorezkyanwar-monitoring.png`.
+
+Endpoint metrik yang dapat diverifikasi langsung adalah:
+
+```text
+http://localhost:8501/monitoring/prometheus/metrics
 ```
 
 ---
 
-## Cara Menjalankan (singkat)
+## Instruksi Verifikasi
 
-1. Setup environment dan install dependencies:
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-2. Jalankan Flask app:
-
-```bash
-python app.py
-```
-
-3. (Opsional) Jalankan monitoring lokal dengan Docker:
-
-```bash
-docker-compose up -d
-```
+1. Buka endpoint metadata: `GET /v1/models/wine-quality`.
+2. Verifikasi metrik: `GET /monitoring/prometheus/metrics`.
+3. Kirim prediksi melalui endpoint standar TF Serving: `POST /v1/models/wine-quality:predict`.
+4. Lihat `Dockerfile`, `tf_serving_entrypoint.sh`, `config/monitoring.config`, dan `monitoring/prometheus.yml` untuk konfigurasi deployment dan monitoring.

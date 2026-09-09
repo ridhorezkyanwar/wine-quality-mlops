@@ -1,14 +1,24 @@
 version: "3.8"
 
 services:
+  tf-serving:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      PORT: 8501
+    ports:
+      - "8501:8501"
+    restart: unless-stopped
+
   prometheus:
     build:
       context: ./monitoring
       dockerfile: Dockerfile
     ports:
       - "9090:9090"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      - tf-serving
     restart: unless-stopped
 
   grafana:
