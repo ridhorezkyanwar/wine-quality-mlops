@@ -155,8 +155,8 @@ Content-Type: application/json
 | `process_*`                            | Gauge/Counter | Metrik proses server.                                     |
 
 Pada pengujian yang didokumentasikan, query
-`:tensorflow:core:graph_runs` mencatat nilai `2` untuk instance
-`tf-serving:8501`. Metric `:tensorflow:serving:request_count` tidak tersedia
+`:tensorflow:core:graph_runs` mencatat nilai `2` untuk deployment Railway
+`wine-quality-mlops-production.up.railway.app`. Metric `:tensorflow:serving:request_count` tidak tersedia
 pada versi image TF Serving yang digunakan, sehingga jangan gunakan query itu.
 
 ### Cara Menjalankan Monitoring Lokal

@@ -5,8 +5,9 @@ global:
     monitor: "tf-serving-monitor"
 
 scrape_configs:
-  - job_name: "wine-quality-tf-serving"
-    static_configs:
-      - targets: ["tf-serving:8501"]
+  - job_name: "prometheus"
+    scheme: https
     metrics_path: "/monitoring/prometheus/metrics"
+    static_configs:
+      - targets: ["wine-quality-mlops-production.up.railway.app"]
     scrape_interval: 5s

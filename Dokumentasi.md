@@ -33,7 +33,11 @@ Respons yang diharapkan memuat status model, nama `wine-quality`, dan versi mode
 
 ## Bukti Monitoring
 
-Jalankan stack monitoring lokal setelah Docker tersedia:
+Konfigurasi Prometheus pada submission melakukan scrape deployment TF Serving di Railway melalui HTTPS. Target yang digunakan adalah
+`wine-quality-mlops-production.up.railway.app`, dengan metrics path
+`/monitoring/prometheus/metrics`.
+
+Untuk menjalankan stack monitoring lokal setelah Docker tersedia:
 
 ```bash
 docker-compose up -d --build
@@ -44,14 +48,16 @@ docker-compose up -d --build
    [ridhorezkyanwar-testing.ipynb](./ridhorezkyanwar-testing.ipynb).
    Endpoint `:predict` tidak dapat diuji dengan membuka URL di browser karena
    browser mengirim method `GET`.
-2. Buka `http://localhost:9090/graph`.
+2. Buka `http://localhost:9090/graph`. Prometheus akan menampilkan target
+   Railway pada halaman `http://localhost:9090/targets` dengan status `UP`
+   jika deployment dapat dijangkau.
 3. Jalankan query `:tensorflow:core:graph_runs` dan pilih tab **Graph**.
 4. Simpan screenshot grafik time series Prometheus sebagai `ridhorezkyanwar-monitoring.png`. Pada pengujian yang didokumentasikan, `:tensorflow:core:graph_runs` mencapai nilai `2`. Metric `:tensorflow:serving:request_count` tidak tersedia pada image TF Serving yang digunakan.
 
-Endpoint metrik yang dapat diverifikasi langsung adalah:
+Endpoint metrik deployment yang dapat diverifikasi langsung adalah:
 
 ```text
-http://localhost:8501/monitoring/prometheus/metrics
+https://wine-quality-mlops-production.up.railway.app/monitoring/prometheus/metrics
 ```
 
 ---
