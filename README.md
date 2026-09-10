@@ -9,9 +9,9 @@ Username dicoding: ridhorezkyanwar
 | Masalah | Menentukan apakah wine tergolong `good` atau `bad` berdasarkan komposisi kimianya agar penilaian kualitas dapat diotomatisasi. |
 | Solusi machine learning | Model klasifikasi biner TensorFlow. Pipeline TFX melakukan validasi, transformasi, tuning, training, evaluasi, dan menghasilkan SavedModel bila model memenuhi threshold. |
 | Metode pengolahan | Sebelas fitur numerik dinormalisasi dengan z-score melalui `tft.scale_to_z_score`. Label dibinarisasi: `quality >= 6` menjadi `1` (`good`) dan sisanya `0` (`bad`). |
-| Arsitektur model | Input 11 fitur, Dense(ReLU), Dropout, Dense(ReLU), Dropout, dan Dense(sigmoid). Hyperparameter `units`, `dropout_rate`, dan `learning_rate` dicari dengan RandomSearch lima trial. |
+| Arsitektur model | Input 11 fitur, Dense(32, ReLU), Dropout(0,2), Dense(32, ReLU), Dropout(0,2), dan Dense(1, sigmoid). Hyperparameter terbaik dari RandomSearch lima trial adalah `units=32`, `dropout_rate=0.2`, dan `learning_rate=0.01`. |
 | Metrik evaluasi | Binary Accuracy dan AUC. Model hanya dapat di-push bila Binary Accuracy memenuhi threshold minimal 0,70. |
-| Performa model | Hasil evaluasi disimpan oleh komponen Evaluator TFX; konfigurasi threshold Binary Accuracy adalah `>= 0.70`. |
+| Performa model | Validation Binary Accuracy `0.7200`; best Tuner validation Binary Accuracy `0.7291507124900818`. Nilai AUC belum tercatat pada artifact yang tersedia dan harus diisi dari output Evaluator TFX. |
 | Opsi deployment | SavedModel dijalankan menggunakan **TensorFlow Serving** dalam container `tensorflow/serving:latest` dan dideploy ke Railway. REST API TF Serving menggunakan port Railway (`$PORT`). |
 | Web app | [TF Serving model metadata](https://wine-quality-mlops-production.up.railway.app/v1/models/wine-quality) |
 | Monitoring | TF Serving mengekspos metrik Prometheus bawaan di `/monitoring/prometheus/metrics`. Prometheus melakukan scrape endpoint ini setiap lima detik melalui konfigurasi `monitoring/prometheus.yml`. |
@@ -41,7 +41,7 @@ docker-compose up -d --build
 1. Kirim beberapa request prediksi ke `http://localhost:8501/v1/models/wine-quality:predict`.
 2. Buka `http://localhost:9090/graph`.
 3. Jalankan query `:tensorflow:serving:request_count` dan pilih tab **Graph**.
-4. Simpan screenshot grafik time series Prometheus sebagai `ridhorezkyanwar-monitoring.png`.
+4. Simpan screenshot grafik time series Prometheus sebagai `ridhorezkyanwar-monitoring.png`. Pada pengujian yang didokumentasikan, `:tensorflow:serving:request_count` mencapai nilai `2`.
 
 Endpoint metrik yang dapat diverifikasi langsung adalah:
 
