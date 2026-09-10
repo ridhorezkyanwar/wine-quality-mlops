@@ -1,0 +1,17 @@
+# Python caches and virtual environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local IDE settings
+.vscode/
+
+# Local monitoring state
+monitoring/data/
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# TFX internal cache paths can exceed Windows Git path limits
+ridhorezkyanwar-pipeline/**/updated_analyzer_cache/
