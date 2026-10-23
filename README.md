@@ -1,5 +1,17 @@
 # Proyek Pengembangan dan Pengoperasian Sistem Machine Learning
 
+<p align="center">
+  <img src="https://readme-typing-svg.demolab.com?font=Fira+Code&weight=500&size=18&duration=2600&pause=850&color=58A6FF&center=true&vCenter=true&width=520&lines=Build+%E2%80%A2+Test+%E2%80%A2+Improve" alt="Animated banner: Build, Test, Improve" />
+</p>
+<p align="center">
+  <img src="https://img.shields.io/badge/Python-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python badge" />
+  <img src="https://img.shields.io/badge/TensorFlow%20Extended-FF6F00?style=flat-square&logo=tensorflow&logoColor=white" alt="TensorFlow Extended badge" />
+  <img src="https://img.shields.io/badge/Apache%20Beam-0052CC?style=flat-square" alt="Apache Beam badge" />
+  <img src="https://img.shields.io/badge/Prometheus-E6522C?style=flat-square&logo=prometheus&logoColor=white" alt="Prometheus badge" />
+  <img src="https://img.shields.io/badge/Grafana-F46800?style=flat-square&logo=grafana&logoColor=white" alt="Grafana badge" />
+</p>
+
+
 ## Wine Quality Classification
 
 **Nama:** Ridho Rezky Anwar  
