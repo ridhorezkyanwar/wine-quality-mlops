@@ -7,6 +7,7 @@ combine_wine_datasets() from code or run this file as a script.
 from __future__ import annotations
 
 import csv
+import math
 import os
 import tempfile
 from collections import Counter
@@ -91,11 +92,37 @@ def combine_wine_datasets(
 
     all_rows = red_rows + white_rows
     quality_counts: Counter[int] = Counter()
+    normalized_rows: list[dict[str, str]] = []
+
     for index, row in enumerate(all_rows, start=2):
+        normalized_row: dict[str, str] = {}
         try:
-            quality = int(float(row["quality"]))
+            raw_quality = float(row["quality"])
+            if not math.isfinite(raw_quality) or not raw_quality.is_integer():
+                raise ValueError("quality must be a finite integer")
+            quality = int(raw_quality)
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError(f"Invalid quality label at combined row {index}.") from error
+
+        for column in red_headers:
+            if column == "quality":
+                normalized_row[column] = str(quality)
+                continue
+            try:
+                numeric_value = float(row[column])
+            except (KeyError, TypeError, ValueError) as error:
+                raise ValueError(
+                    f"Invalid numeric value for {column!r} at combined row {index}."
+                ) from error
+            if not math.isfinite(numeric_value):
+                raise ValueError(
+                    f"Non-finite numeric value for {column!r} at combined row {index}."
+                )
+            # This matches the float-column representation in the committed CSV
+            # (for example, 11 becomes 11.0 while quality remains an integer).
+            normalized_row[column] = repr(numeric_value)
+
+        normalized_rows.append(normalized_row)
         quality_counts[quality] += 1
 
     destination = Path(output_path)
@@ -114,7 +141,7 @@ def combine_wine_datasets(
             temp_path = temp_file.name
             writer = csv.DictWriter(temp_file, fieldnames=red_headers)
             writer.writeheader()
-            writer.writerows(all_rows)
+            writer.writerows(normalized_rows)
 
         os.replace(temp_path, destination)
         temp_path = None
