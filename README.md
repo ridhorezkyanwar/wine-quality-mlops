@@ -97,60 +97,29 @@ Model hanya di-push ke serving directory jika Binary Accuracy Evaluator memenuhi
 
 ## Deployment dan Monitoring
 
-Model di-deploy dengan **TensorFlow Serving**, bukan Flask/FastAPI. `Dockerfile` menggunakan `tensorflow/serving:latest`, memuat SavedModel dari `serving_model/`, dan menjalankan REST API pada port yang disediakan Railway. Konfigurasi Prometheus bawaan TF Serving ada di `config/monitoring.config`.
+**Status terverifikasi per 27 Oktober 2026: deployment Railway saat ini belum berjalan.** Pemeriksaan layanan menemukan deployment terakhir berstatus `FAILED`; log build yang tersimpan menunjukkan konflik dependensi antara `tfx==1.14.0` dan `tensorflow==2.12.0`. Konflik pin TensorFlow telah diperbaiki di `requirements.txt` ke versi 2.13.0 untuk mengikuti rentang TFX tersebut.
 
-### Deploy ke Railway
+Konfigurasi layanan Railway juga sudah diarahkan ke `Dockerfile` yang ada di repositori. Namun, deployment ulang belum berhasil dijalankan: Railway mengembalikan pesan bahwa masa uji coba akun telah berakhir dan meminta pemilihan paket. Jadi jangan menganggap domain atau endpoint di bawah sudah berfungsi saat ini; setelah akses deployment tersedia, jalankan build baru dan uji health/model endpoint sebelum menandainya aktif.
 
-1. Push perubahan ke branch `main` GitHub.
-2. Railway rebuild `Dockerfile` secara otomatis.
-3. Pastikan deployment berstatus **Success**.
-4. Buka endpoint metadata model untuk memverifikasi TF Serving.
+Model dirancang untuk di-serve dengan **TensorFlow Serving**, bukan Flask/FastAPI. `Dockerfile` memuat model dari `serving_model/` dan membuka REST API pada port yang disediakan Railway. Konfigurasi metrik ada di `config/monitoring.config`.
 
-### Endpoints
+### Pemulihan deployment
 
-| Endpoint                          | Method | Deskripsi                            |
-| --------------------------------- | ------ | ------------------------------------ |
-| `/v1/models/wine-quality`         | GET    | Metadata dan status model.           |
-| `/v1/models/wine-quality:predict` | POST   | Prediksi dengan REST API TF Serving. |
-| `/monitoring/prometheus/metrics`  | GET    | Metrik Prometheus bawaan TF Serving. |
+1. Pastikan paket Railway aktif atau pindahkan layanan ke platform hosting yang dapat menjalankan image Docker ini.
+2. Build ulang dari branch `main` agar perubahan dependensi dan konfigurasi Dockerfile diterapkan.
+3. Pastikan build berhasil dan instance tetap hidup.
+4. Uji endpoint metadata model, lalu uji prediksi dengan request `POST` yang berisi payload TensorFlow Serving yang valid.
+5. Verifikasi endpoint metrik Prometheus dan catat hasil pengujian yang benar-benar berjalan.
 
-### Contoh Request
+### Endpoints yang direncanakan
 
-```bash
-# Metadata model (GET)
-curl https://wine-quality-mlops-production.up.railway.app/v1/models/wine-quality
-```
+| Endpoint | Method | Tujuan |
+| --- | --- | --- |
+| `/v1/models/wine-quality` | GET | Metadata/status model; harus diuji setelah deployment pulih. |
+| `/v1/models/wine-quality:predict` | POST | Prediksi melalui TensorFlow Serving; membutuhkan body JSON sesuai signature model. |
+| `/monitoring/prometheus/metrics` | GET | Metrik Prometheus bawaan TensorFlow Serving; harus diuji setelah deployment pulih. |
 
-Prediksi **wajib** menggunakan method `POST` dan body TF Serving. Jangan membuka
-URL `:predict` langsung di browser karena browser mengirim `GET` dan TF Serving
-akan mengembalikan `Malformed request`.
-
-Gunakan [ridhorezkyanwar-testing.ipynb](./ridhorezkyanwar-testing.ipynb)
-untuk mengirim request prediksi dengan format serialized `tf.Example`:
-
-```python
-result = predict(wine_sample)
-print(result)
-```
-
-Fungsi `predict` pada notebook mengirim:
-
-```text
-POST /v1/models/wine-quality:predict
-Content-Type: application/json
-```
-
-### Contoh Response
-
-```json
-{ "model_version_status": [{ "version": "<versi>", "state": "AVAILABLE" }] }
-```
-
-### Web App URL
-
-`https://wine-quality-mlops-production.up.railway.app`
-
----
+**Domain yang pernah dikonfigurasi:** `https://wine-quality-mlops-production.up.railway.app`. Domain ini belum merupakan bukti bahwa aplikasi sedang live.
 
 ## Monitoring Prometheus
 
