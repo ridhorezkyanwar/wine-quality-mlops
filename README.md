@@ -169,22 +169,32 @@ pada versi image TF Serving yang digunakan, sehingga jangan gunakan query itu.
 
 ### Cara Menjalankan Monitoring Lokal
 
-```bash
-# Jalankan TF Serving, Prometheus, dan Grafana
-docker-compose up -d --build
+1. Copy template environment dan set kata sandi admin Grafana yang panjang serta unik:
 
-# Akses Prometheus: http://localhost:9090
-# Akses Grafana: http://localhost:3000 (admin/admin)
+```bash
+cp .env.example .env
+# Edit .env dan isi GRAFANA_ADMIN_PASSWORD dengan kata sandi unik.
 ```
+
+Jangan commit file `.env`. Compose akan menolak startup ketika `GRAFANA_ADMIN_PASSWORD` kosong—tidak ada kredensial default `admin/admin`.
+
+2. Jalankan layanan:
+
+```bash
+docker compose up -d --build
+docker compose ps
+docker compose logs --tail=100
+```
+
+3. Buka dashboard lokal: Prometheus di http://localhost:9090 dan Grafana di http://localhost:3000. Port hanya dipublikasikan ke loopback host secara default, bukan ke seluruh jaringan. Ubah port melalui `.env` jika diperlukan.
 
 ### Setup Grafana Dashboard
 
-1. Buka http://localhost:3000
-2. Login: admin / admin
-3. Add Data Source → Prometheus → URL: http://prometheus:9090
-4. Import dashboard atau buat panel baru dengan query:
-   - `:tensorflow:core:graph_runs` - jumlah eksekusi inference TF Serving
+1. Buka http://localhost:3000 dan masuk dengan username/password yang diset di `.env`.
+2. Add Data Source → Prometheus → URL: http://prometheus:9090.
+3. Import dashboard atau buat panel baru dengan query `:tensorflow:core:graph_runs` untuk menghitung eksekusi inference TF Serving.
 
+Compose menggunakan konfigurasi Prometheus lokal yang men-scrape layanan `tf-serving:8501`. Konfigurasi `monitoring/prometheus.yml` tetap digunakan oleh image monitoring untuk target deployment Railway.
 ---
 
 ## Struktur Proyek
@@ -198,8 +208,8 @@ ProyekPengembangandanPengoperasianSistemMachineLearning/
 │   └── tuner.py                  # Hyperparameter tuning module
 ├── monitoring/
 │   ├── Dockerfile                # Prometheus Dockerfile
-│   ├── prometheus.config         # Prometheus config
-│   └── prometheus.yml            # Prometheus scrape config
+│   ├── prometheus.yml            # Prometheus config for Railway target
+│   └── prometheus.local.yml      # Prometheus config for local Docker Compose
 ├── data/
 │   └── wine_quality.csv          # Dataset
 ├── serving_model/                # Pushed model (generated)
@@ -235,5 +245,6 @@ python pipeline.py
 ### 3. Jalankan TensorFlow Serving dan monitoring
 
 ```bash
-docker-compose up -d --build
+cp .env.example .env  # edit GRAFANA_ADMIN_PASSWORD first
+docker compose up -d --build
 ```
