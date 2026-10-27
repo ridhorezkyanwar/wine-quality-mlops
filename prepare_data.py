@@ -1,63 +1,161 @@
-"""Script untuk menggabungkan red dan white wine menjadi wine_quality.csv."""
+"""Combine the red and white UCI Wine Quality CSV files.
+
+Importing this module does not read files or create output. Call
+combine_wine_datasets() from code or run this file as a script.
+"""
+
+from __future__ import annotations
 
 import csv
 import os
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(BASE_DIR, "data")
-
-
-def read_csv_semicolon(filepath):
-    rows = []
-    with open(filepath, "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f, delimiter=";")
-        for row in reader:
-            rows.append(row)
-    return rows
+import tempfile
+from collections import Counter
+from pathlib import Path
+from typing import Any
 
 
-def normalize_header(header):
+REQUIRED_COLUMNS = {
+    "fixed_acidity",
+    "volatile_acidity",
+    "citric_acid",
+    "residual_sugar",
+    "chlorides",
+    "free_sulfur_dioxide",
+    "total_sulfur_dioxide",
+    "density",
+    "pH",
+    "sulphates",
+    "alcohol",
+    "quality",
+}
+
+
+def normalize_header(header: str) -> str:
+    """Normalize a UCI CSV header while retaining its original meaning."""
     return header.strip().replace(" ", "_")
 
 
-red_path = os.path.join(DATA_DIR, "winequality-red.csv")
-white_path = os.path.join(DATA_DIR, "winequality-white.csv")
-output_path = os.path.join(DATA_DIR, "wine_quality.csv")
+def read_csv_semicolon(filepath: str | Path) -> tuple[list[str], list[dict[str, str]]]:
+    """Read a semicolon-delimited UCI source file and normalize its headers."""
+    source = Path(filepath)
+    if not source.is_file():
+        raise FileNotFoundError(f"Dataset file not found: {source}")
 
-red_rows = read_csv_semicolon(red_path)
-white_rows = read_csv_semicolon(white_path)
+    with source.open("r", encoding="utf-8-sig", newline="") as file:
+        reader = csv.DictReader(file, delimiter=";")
+        raw_headers = reader.fieldnames
+        if not raw_headers:
+            raise ValueError(f"Dataset has no header row: {source}")
 
-all_rows = red_rows + white_rows
+        headers = [normalize_header(header) for header in raw_headers]
+        if any(not header for header in headers):
+            raise ValueError(f"Dataset contains an empty column name: {source}")
+        if len(headers) != len(set(headers)):
+            raise ValueError(f"Dataset contains duplicate normalized headers: {source}")
 
-# Normalize header
-raw_headers = list(all_rows[0].keys())
-norm_headers = [normalize_header(h) for h in raw_headers]
+        rows: list[dict[str, str]] = []
+        for line_number, raw_row in enumerate(reader, start=2):
+            if None in raw_row:
+                raise ValueError(f"Unexpected extra column in {source} at line {line_number}")
+            if any(value is None for value in raw_row.values()):
+                raise ValueError(f"Missing column value in {source} at line {line_number}")
+            row = {
+                normalize_header(key): value.strip()
+                for key, value in raw_row.items()
+                if key is not None and value is not None
+            }
+            if any(value == "" for value in row.values()):
+                raise ValueError(f"Empty value in {source} at line {line_number}")
+            rows.append(row)
 
-with open(output_path, "w", newline="", encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(norm_headers)
-    for row in all_rows:
-        writer.writerow([row[h] for h in raw_headers])
+    if not rows:
+        raise ValueError(f"Dataset contains no data rows: {source}")
 
-print(f"Berhasil! Total baris: {len(all_rows)}")
-print(f"Kolom: {norm_headers}")
+    return headers, rows
 
-# Hitung distribusi quality
-quality_counts = {}
-good = 0
-bad = 0
-for row in all_rows:
-    q = int(float(row["quality"]))
-    quality_counts[q] = quality_counts.get(q, 0) + 1
-    if q >= 6:
-        good += 1
-    else:
-        bad += 1
 
-print(f"\nDistribusi quality:")
-for k in sorted(quality_counts):
-    print(f"  {k}: {quality_counts[k]}")
-print(f"\nLabel binarisasi:")
-print(f"  good (>=6): {good}")
-print(f"  bad  (<6) : {bad}")
-print(f"\nDisimpan ke: {output_path}")
+def combine_wine_datasets(
+    red_path: str | Path,
+    white_path: str | Path,
+    output_path: str | Path,
+) -> dict[str, Any]:
+    """Validate, combine, and atomically write the two wine datasets."""
+    red_headers, red_rows = read_csv_semicolon(red_path)
+    white_headers, white_rows = read_csv_semicolon(white_path)
+
+    if red_headers != white_headers:
+        raise ValueError("Red and white wine datasets have different column headers.")
+    if not REQUIRED_COLUMNS.issubset(red_headers):
+        missing = sorted(REQUIRED_COLUMNS.difference(red_headers))
+        raise ValueError(f"Dataset is missing required columns: {', '.join(missing)}")
+
+    all_rows = red_rows + white_rows
+    quality_counts: Counter[int] = Counter()
+    for index, row in enumerate(all_rows, start=2):
+        try:
+            quality = int(float(row["quality"]))
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"Invalid quality label at combined row {index}.") from error
+        quality_counts[quality] += 1
+
+    destination = Path(output_path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp_path: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            newline="",
+            dir=destination.parent,
+            prefix=f".{destination.name}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = temp_file.name
+            writer = csv.DictWriter(temp_file, fieldnames=red_headers)
+            writer.writeheader()
+            writer.writerows(all_rows)
+
+        os.replace(temp_path, destination)
+        temp_path = None
+    finally:
+        if temp_path is not None:
+            try:
+                os.unlink(temp_path)
+            except FileNotFoundError:
+                pass
+
+    good = sum(count for label, count in quality_counts.items() if label >= 6)
+    bad = sum(count for label, count in quality_counts.items() if label < 6)
+    return {
+        "rows": len(all_rows),
+        "headers": red_headers,
+        "quality_counts": dict(sorted(quality_counts.items())),
+        "good": good,
+        "bad": bad,
+        "output_path": str(destination),
+    }
+
+
+def main() -> None:
+    base_dir = Path(__file__).resolve().parent
+    data_dir = base_dir / "data"
+    result = combine_wine_datasets(
+        data_dir / "winequality-red.csv",
+        data_dir / "winequality-white.csv",
+        data_dir / "wine_quality.csv",
+    )
+
+    print(f"Berhasil! Total baris: {result['rows']}")
+    print(f"Kolom: {result['headers']}")
+    print("\nDistribusi quality:")
+    for quality, count in result["quality_counts"].items():
+        print(f"  {quality}: {count}")
+    print("\nLabel binarisasi:")
+    print(f"  good (>=6): {result['good']}")
+    print(f"  bad  (<6) : {result['bad']}")
+    print(f"\nDisimpan ke: {result['output_path']}")
+
+
+if __name__ == "__main__":
+    main()
