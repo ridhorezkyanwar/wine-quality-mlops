@@ -139,7 +139,7 @@ def combine_wine_datasets(
             delete=False,
         ) as temp_file:
             temp_path = temp_file.name
-            writer = csv.DictWriter(temp_file, fieldnames=red_headers)
+            writer = csv.DictWriter(temp_file, fieldnames=red_headers, lineterminator="\n")
             writer.writeheader()
             writer.writerows(normalized_rows)
 
