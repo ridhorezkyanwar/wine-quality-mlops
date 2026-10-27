@@ -15,3 +15,5 @@ monitoring/data/
 
 # TFX internal cache paths can exceed Windows Git path limits
 ridhorezkyanwar-pipeline/**/updated_analyzer_cache/
+# Local TFX pipeline metadata database (generated at runtime)
+ridhorezkyanwar-pipeline/metadata/
