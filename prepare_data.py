@@ -139,11 +139,12 @@ def combine_wine_datasets(
 
 def main() -> None:
     base_dir = Path(__file__).resolve().parent
-    data_dir = base_dir / "data"
+    raw_dir = base_dir / "data_raw"
+    output_path = base_dir / "data" / "wine_quality.csv"
     result = combine_wine_datasets(
-        data_dir / "winequality-red.csv",
-        data_dir / "winequality-white.csv",
-        data_dir / "wine_quality.csv",
+        raw_dir / "winequality-red.csv",
+        raw_dir / "winequality-white.csv",
+        output_path,
     )
 
     print(f"Berhasil! Total baris: {result['rows']}")
