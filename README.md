@@ -97,9 +97,9 @@ Model hanya di-push ke serving directory jika Binary Accuracy Evaluator memenuhi
 
 ## Deployment dan Monitoring
 
-**Status terverifikasi per 27 Oktober 2026: deployment Railway saat ini belum berjalan.** Pemeriksaan layanan menemukan deployment terakhir berstatus `FAILED`; log build yang tersimpan menunjukkan konflik dependensi antara `tfx==1.14.0` dan `tensorflow==2.12.0`. Konflik pin TensorFlow telah diperbaiki di `requirements.txt` ke versi 2.13.0 untuk mengikuti rentang TFX tersebut.
+**Status terverifikasi per 27 Oktober 2026: deployment Railway belum berjalan.** Status layanan masih `FAILED` dan tidak ada deployment live. Konflik dependensi TFX/TensorFlow yang pernah tercatat telah ditangani di `requirements.txt`. Audit konfigurasi berikutnya menemukan port REST API pada `Dockerfile` tidak cocok dengan port domain Railway; `Dockerfile` kini menetapkan port `8080` agar sesuai dengan domain layanan. Compose lokal tetap mengatur `PORT=8501` dan memetakan port lokal ke `8501`.
 
-Konfigurasi layanan Railway juga sudah diarahkan ke `Dockerfile` yang ada di repositori. Namun, deployment ulang belum berhasil dijalankan: Railway mengembalikan pesan bahwa masa uji coba akun telah berakhir dan meminta pemilihan paket. Jadi jangan menganggap domain atau endpoint di bawah sudah berfungsi saat ini; setelah akses deployment tersedia, jalankan build baru dan uji health/model endpoint sebelum menandainya aktif.
+Push kode belum menghasilkan deployment live baru. Informasi yang tersimpan pada README sebelumnya menyebut masa uji coba Railway telah berakhir dan meminta pemilihan paket; karena itu saya tidak mengklaim deployment berhasil atau melakukan tindakan yang berpotensi menimbulkan biaya. Domain di bawah belum terbukti aktif. Setelah akun/akses deployment tersedia, build ulang lalu uji metadata model, prediksi, dan endpoint Prometheus sebelum menandai layanan live.
 
 Model dirancang untuk di-serve dengan **TensorFlow Serving**, bukan Flask/FastAPI. `Dockerfile` memuat model dari `serving_model/` dan membuka REST API pada port yang disediakan Railway. Konfigurasi metrik ada di `config/monitoring.config`.
 
