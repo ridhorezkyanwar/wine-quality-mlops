@@ -1,5 +1,5 @@
 tfx==1.14.0
-tensorflow==2.13.0
+tensorflow==2.21.0
 tensorflow-serving-api==2.13.0
 flask==2.3.2
 requests==2.31.0
